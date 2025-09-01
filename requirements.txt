@@ -1,0 +1,12 @@
+streamlit
+networkx
+pyvis
+langchain
+langchain-core
+langchain-google-genai
+langchain-chroma
+langchain-community
+langchain-openai
+pypdf
+jupyter
+ipykernel
