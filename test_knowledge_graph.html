@@ -1,0 +1,321 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 400px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#98D8C8", "font": {"color": "black"}, "id": "doc_indian_bank_case.pdf", "label": "indian_bank_case.pdf", "shape": "box", "size": 16, "title": "Source: indian_bank_case.pdf"}, {"color": "#98D8C8", "font": {"color": "black"}, "id": "doc_commercial_courts_act.pdf", "label": "commercial_courts_act.pdf", "shape": "box", "size": 16, "title": "Source: commercial_courts_act.pdf"}, {"color": "#98D8C8", "font": {"color": "black"}, "id": "doc_civil_procedure_case.pdf", "label": "civil_procedure_case.pdf", "shape": "box", "size": 16, "title": "Source: civil_procedure_case.pdf"}, {"color": "#FF6B6B", "font": {"color": "black"}, "id": "court_kerala", "label": "Kerala", "shape": "diamond", "size": 25, "title": "Court: Kerala\nSource: indian_bank_case.pdf"}, {"color": "#FF6B6B", "font": {"color": "black"}, "id": "court_\n____________the_petitioner_challenged_the_order_of_the", "label": "\n            the petitioner challenged the order of the", "shape": "diamond", "size": 25, "title": "Court: \n            the petitioner challenged the order of the\nSource: indian_bank_case.pdf"}, {"color": "#FF6B6B", "font": {"color": "black"}, "id": "court_supreme_court_of_india", "label": "Supreme Court of India", "shape": "diamond", "size": 25, "title": "Court: Supreme Court of India\nSource: indian_bank_case.pdf"}, {"color": "#4ECDC4", "font": {"color": "black"}, "id": "case_2023_1_scc_123", "label": "(2023) 1 SCC 123", "shape": "dot", "size": 20, "title": "Case: (2023) 1 SCC 123\nSource: indian_bank_case.pdf"}, {"color": "#45B7D1", "font": {"color": "black"}, "id": "section_section_138", "label": "Section 138", "shape": "square", "size": 18, "title": "Section: Section 138\nSource: indian_bank_case.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_the_supreme_court", "label": "The Supreme Court", "shape": "triangle", "size": 15, "title": "Party: The Supreme Court\nSource: commercial_courts_act.pdf"}, {"color": "#F7DC6F", "font": {"color": "black"}, "id": "entity_india", "label": "India", "shape": "ellipse", "size": 12, "title": "Entity: India\nSource: indian_bank_case.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_m/s._indian_bank", "label": "M/s. Indian Bank", "shape": "triangle", "size": 15, "title": "Party: M/s. Indian Bank\nSource: indian_bank_case.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_k.p._mani_\u0026_ors", "label": "K.P. Mani \u0026 Ors", "shape": "triangle", "size": 15, "title": "Party: K.P. Mani \u0026 Ors\nSource: indian_bank_case.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_the_high_court", "label": "The High Court", "shape": "triangle", "size": 15, "title": "Party: The High Court\nSource: civil_procedure_case.pdf"}, {"color": "#F7DC6F", "font": {"color": "black"}, "id": "entity_kerala", "label": "Kerala", "shape": "ellipse", "size": 12, "title": "Entity: Kerala\nSource: indian_bank_case.pdf"}, {"color": "#FFEAA7", "font": {"color": "black"}, "id": "judge_k.p._mani", "label": "K.P. Mani", "shape": "star", "size": 22, "title": "Judge: K.P. Mani\nSource: indian_bank_case.pdf"}, {"color": "#DDA0DD", "font": {"color": "black"}, "id": "law_section_138", "label": "Section 138", "shape": "hexagon", "size": 20, "title": "Law: Section 138\nSource: indian_bank_case.pdf"}, {"color": "#DDA0DD", "font": {"color": "black"}, "id": "law_the_negotiable_instruments_act", "label": "the Negotiable Instruments Act", "shape": "hexagon", "size": 20, "title": "Law: the Negotiable Instruments Act\nSource: indian_bank_case.pdf"}, {"color": "#FFEAA7", "font": {"color": "black"}, "id": "judge_d.y._chandrachud", "label": "D.Y. Chandrachud", "shape": "star", "size": 22, "title": "Judge: D.Y. Chandrachud\nSource: indian_bank_case.pdf"}, {"color": "#FF6B6B", "font": {"color": "black"}, "id": "court__commercial_division\n____________and_commercial_appellate_division_of", "label": " Commercial Division\n            and Commercial Appellate Division of", "shape": "diamond", "size": 25, "title": "Court:  Commercial Division\n            and Commercial Appellate Division of\nSource: commercial_courts_act.pdf"}, {"color": "#4ECDC4", "font": {"color": "black"}, "id": "case_2022_3_scc_472", "label": "(2022) 3 SCC 472", "shape": "dot", "size": 20, "title": "Case: (2022) 3 SCC 472\nSource: commercial_courts_act.pdf"}, {"color": "#45B7D1", "font": {"color": "black"}, "id": "section_section_12a", "label": "Section 12A", "shape": "square", "size": 18, "title": "Section: Section 12A\nSource: commercial_courts_act.pdf"}, {"color": "#DDA0DD", "font": {"color": "black"}, "id": "law_the_commercial_courts_act", "label": "The Commercial Courts Act", "shape": "hexagon", "size": 20, "title": "Law: The Commercial Courts Act\nSource: commercial_courts_act.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_the_commercial_courts", "label": "the Commercial Courts", "shape": "triangle", "size": 15, "title": "Party: the Commercial Courts\nSource: commercial_courts_act.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_commercial_appellate_division_of_high_courts", "label": "Commercial Appellate Division of High Courts", "shape": "triangle", "size": 15, "title": "Party: Commercial Appellate Division of High Courts\nSource: commercial_courts_act.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_rakheja_engineers_pvt._ltd.", "label": "Rakheja Engineers Pvt. Ltd.", "shape": "triangle", "size": 15, "title": "Party: Rakheja Engineers Pvt. Ltd.\nSource: commercial_courts_act.pdf"}, {"color": "#FF6B6B", "font": {"color": "black"}, "id": "court_delhi_in_xyz_bank_vs", "label": "Delhi in XYZ Bank vs", "shape": "diamond", "size": 25, "title": "Court: Delhi in XYZ Bank vs\nSource: civil_procedure_case.pdf"}, {"color": "#FF6B6B", "font": {"color": "black"}, "id": "court__the", "label": " The", "shape": "diamond", "size": 25, "title": "Court:  The\nSource: civil_procedure_case.pdf"}, {"color": "#4ECDC4", "font": {"color": "black"}, "id": "case_2021_2_ilr_456", "label": "(2021) 2 ILR 456", "shape": "dot", "size": 20, "title": "Case: (2021) 2 ILR 456\nSource: civil_procedure_case.pdf"}, {"color": "#45B7D1", "font": {"color": "black"}, "id": "section_rule_1", "label": "Rule 1", "shape": "square", "size": 18, "title": "Section: Rule 1\nSource: civil_procedure_case.pdf"}, {"color": "#45B7D1", "font": {"color": "black"}, "id": "section_order_39", "label": "Order 39", "shape": "square", "size": 18, "title": "Section: Order 39\nSource: civil_procedure_case.pdf"}, {"color": "#DDA0DD", "font": {"color": "black"}, "id": "law_order_39_rule_1_of_the_code_of_civil_procedure", "label": "Order 39 Rule 1 of the Code of Civil Procedure", "shape": "hexagon", "size": 20, "title": "Law: Order 39 Rule 1 of the Code of Civil Procedure\nSource: civil_procedure_case.pdf"}, {"color": "#F7DC6F", "font": {"color": "black"}, "id": "entity_delhi", "label": "Delhi", "shape": "ellipse", "size": 12, "title": "Entity: Delhi\nSource: civil_procedure_case.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_xyz_bank", "label": "XYZ Bank", "shape": "triangle", "size": 15, "title": "Party: XYZ Bank\nSource: civil_procedure_case.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_abc_corporation", "label": "ABC Corporation", "shape": "triangle", "size": 15, "title": "Party: ABC Corporation\nSource: civil_procedure_case.pdf"}, {"color": "#96CEB4", "font": {"color": "black"}, "id": "party_ilr", "label": "ILR", "shape": "triangle", "size": 15, "title": "Party: ILR\nSource: civil_procedure_case.pdf"}, {"color": "#FFEAA7", "font": {"color": "black"}, "id": "judge_singh", "label": "Singh", "shape": "star", "size": 22, "title": "Judge: Singh\nSource: civil_procedure_case.pdf"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains Kerala", "to": "court_kerala", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains \n            the petitioner challenged the order of the", "to": "court_\n____________the_petitioner_challenged_the_order_of_the", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains Supreme Court of India", "to": "court_supreme_court_of_india", "width": 1}, {"arrows": "to", "color": "#FF6B6B", "from": "doc_indian_bank_case.pdf", "label": "cites", "title": "indian_bank_case.pdf cites (2023) 1 SCC 123", "to": "case_2023_1_scc_123", "width": 2}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains Section 138", "to": "section_section_138", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains the Supreme Court", "to": "party_the_supreme_court", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains India", "to": "entity_india", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains M/s. Indian Bank", "to": "party_m/s._indian_bank", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains K.P. Mani \u0026 Ors", "to": "party_k.p._mani_\u0026_ors", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains the High Court", "to": "party_the_high_court", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains Kerala", "to": "entity_kerala", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains K.P. Mani", "to": "judge_k.p._mani", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains Section 138", "to": "law_section_138", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains the Negotiable Instruments Act", "to": "law_the_negotiable_instruments_act", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_indian_bank_case.pdf", "label": "contains", "title": "indian_bank_case.pdf contains D.Y. Chandrachud", "to": "judge_d.y._chandrachud", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_commercial_courts_act.pdf", "label": "contains", "title": "commercial_courts_act.pdf contains  Commercial Division\n            and Commercial Appellate Division of", "to": "court__commercial_division\n____________and_commercial_appellate_division_of", "width": 1}, {"arrows": "to", "color": "#FF6B6B", "from": "doc_commercial_courts_act.pdf", "label": "cites", "title": "commercial_courts_act.pdf cites (2022) 3 SCC 472", "to": "case_2022_3_scc_472", "width": 2}, {"arrows": "to", "color": "#26A69A", "from": "doc_commercial_courts_act.pdf", "label": "contains", "title": "commercial_courts_act.pdf contains Section 12A", "to": "section_section_12a", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_commercial_courts_act.pdf", "label": "contains", "title": "commercial_courts_act.pdf contains The Commercial Courts Act", "to": "law_the_commercial_courts_act", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_commercial_courts_act.pdf", "label": "contains", "title": "commercial_courts_act.pdf contains the Commercial Courts", "to": "party_the_commercial_courts", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_commercial_courts_act.pdf", "label": "contains", "title": "commercial_courts_act.pdf contains Commercial Appellate Division of High Courts", "to": "party_commercial_appellate_division_of_high_courts", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_commercial_courts_act.pdf", "label": "contains", "title": "commercial_courts_act.pdf contains The Supreme Court", "to": "party_the_supreme_court", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_commercial_courts_act.pdf", "label": "contains", "title": "commercial_courts_act.pdf contains Rakheja Engineers Pvt. Ltd.", "to": "party_rakheja_engineers_pvt._ltd.", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains Delhi in XYZ Bank vs", "to": "court_delhi_in_xyz_bank_vs", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains  The", "to": "court__the", "width": 1}, {"arrows": "to", "color": "#FF6B6B", "from": "doc_civil_procedure_case.pdf", "label": "cites", "title": "civil_procedure_case.pdf cites (2021) 2 ILR 456", "to": "case_2021_2_ilr_456", "width": 2}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains Rule 1", "to": "section_rule_1", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains Order 39", "to": "section_order_39", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains Order 39 Rule 1 of the Code of Civil Procedure", "to": "law_order_39_rule_1_of_the_code_of_civil_procedure", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains The High Court", "to": "party_the_high_court", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains Delhi", "to": "entity_delhi", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains XYZ Bank", "to": "party_xyz_bank", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains ABC Corporation", "to": "party_abc_corporation", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains ILR", "to": "party_ilr", "width": 1}, {"arrows": "to", "color": "#26A69A", "from": "doc_civil_procedure_case.pdf", "label": "contains", "title": "civil_procedure_case.pdf contains Singh", "to": "judge_singh", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {"physics": {"enabled": true, "barnesHut": {"gravitationalConstant": -80000, "centralGravity": 0.3, "springLength": 250, "springConstant": 0.001, "damping": 0.09, "avoidOverlap": 0}, "stabilization": {"enabled": true, "iterations": 1000}}, "interaction": {"dragNodes": true, "hideEdgesOnDrag": false, "hideNodesOnDrag": false, "hover": true, "multiselect": true, "navigationButtons": true}, "edges": {"smooth": {"enabled": true, "type": "dynamic"}, "arrows": {"to": {"enabled": true, "scaleFactor": 0.5}}}, "nodes": {"font": {"size": 12, "face": "arial"}}};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

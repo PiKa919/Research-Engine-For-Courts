@@ -113,3 +113,115 @@ dmypy.json
 
 # Chroma
 chroma/
+chroma_backup/
+chroma_backup_*/
+vector_db/
+embeddings/
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+cache/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.dmypy_cache/
+
+# Data Science / Machine Learning
+# Model files
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.joblib
+*.model
+*.weights
+*.pb
+*.onnx
+*.tflite
+
+# Large datasets (uncomment if you want to ignore data files)
+# data/*.pdf
+# data/*.txt
+# data/*.docx
+# *.csv
+# *.json
+# *.parquet
+# *.feather
+# *.pkl.gz
+
+# Logs
+logs/
+*.log
+log.txt
+error.log
+debug.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
+
+# Project specific
+# Backup files
+*_backup/
+*_old/
+*.bak
+
+# API keys and secrets
+secrets.json
+api_keys.json
+credentials.json
+
+# Streamlit
+.streamlit/
+
+# FastAPI
+__pycache__
+*.pyc
+
+# LM Studio / Local models
+# Uncomment if you want to ignore local model files
+# models/
+# *.bin
+# *.gguf
+
+# Performance monitoring
+performance_metrics.json
+metrics_export.json
+
+# Test files
+test_*.py
+*_test.py
+tests/
+
+# Documentation builds
+docs/build/
+docs/source/_build/
+
+# Node modules (if any JS is added)
+node_modules/
+
+# Git
+.git
+.gitignore

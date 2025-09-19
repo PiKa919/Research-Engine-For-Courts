@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Research Engine</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            width: 500px;
+            padding: 2rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        textarea {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        button {
+            width: 100%;
+            padding: 0.5rem;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        #response {
+            margin-top: 1rem;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Legal Research Engine</h1>
+        <textarea id="query" rows="5" placeholder="Enter your legal query..."></textarea>
+        <button onclick="performQuery()">Submit</button>
+        <div id="response"></div>
+    </div>
+
+    <script>
+        async function performQuery() {
+            const query = document.getElementById('query').value;
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = 'Loading...';
+
+            try {
+                const response = await fetch('/query/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: query }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                responseDiv.textContent = data.answer;
+            } catch (error) {
+                responseDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
