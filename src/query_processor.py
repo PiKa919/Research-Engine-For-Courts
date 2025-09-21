@@ -18,8 +18,6 @@ class AdvancedQueryProcessor:
             model=config.LLM_MODEL,
             openai_api_base="http://127.0.0.1:1234/v1",
             openai_api_key="lm-studio",
-            temperature=0.1,
-            max_tokens=512,
             **config.MODEL_CONFIG
         )
         self.cache = get_cache()
@@ -217,6 +215,42 @@ class AdvancedQueryProcessor:
 
         logger.info(f"Hybrid retrieval completed: {len(reranked_docs)} final documents")
         return result
+
+    def process_query(self, query: str) -> List[str]:
+        """
+        Process a query and return multiple variations for retrieval
+
+        Args:
+            query: Original query string
+
+        Returns:
+            List of query variations including original and expanded versions
+        """
+        try:
+            # Start with the original query
+            queries = [query]
+
+            # Add expanded queries
+            expanded = self.expand_query(query, num_expansions=2)
+            queries.extend(expanded)
+
+            # Add multi-query variations
+            multi_queries = self.generate_multi_queries(query, num_variations=3)
+            queries.extend(multi_queries)
+
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_queries = []
+            for q in queries:
+                if q not in seen:
+                    seen.add(q)
+                    unique_queries.append(q)
+
+            return unique_queries[:5]  # Limit to 5 queries for performance
+
+        except Exception as e:
+            logger.warning(f"Query processing failed: {e}")
+            return [query]  # Return original query as fallback
 
 # Global instance
 _query_processor = None

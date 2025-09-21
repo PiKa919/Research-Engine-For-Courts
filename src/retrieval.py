@@ -20,6 +20,10 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import functools
 
+# Import caching
+from .caching import get_cache, cached_query
+from .query_processor import get_query_processor
+
 # Import monitoring
 from .monitoring import get_monitor, timing_decorator, query_performance_tracker
 
@@ -57,16 +61,18 @@ def create_rag_chain():
     print(f"Loading vector store from: {config.CHROMA_PATH}")
     vectorstore = Chroma(
         persist_directory=config.CHROMA_PATH,
-        embedding_function=embeddings,
-        collection_metadata=config.CHROMA_CONFIG
+        embedding_function=embeddings
+        # Removed collection_metadata for now to avoid HNSW parameter issues
+        # collection_metadata=config.CHROMA_CONFIG
     )
 
-    # Configure retriever with optimized settings
+    # Configure retriever with optimized settings (excluding fetch_k for Chroma compatibility)
     retriever = vectorstore.as_retriever(
         search_kwargs={
             "k": config.PERFORMANCE_CONFIG.get("query_top_k", 10),
-            "fetch_k": config.PERFORMANCE_CONFIG.get("query_fetch_k", 50),
-            "lambda_mult": config.PERFORMANCE_CONFIG.get("query_lambda_mult", 0.5)
+            # Note: fetch_k and lambda_mult are not supported by Chroma
+            # "fetch_k": config.PERFORMANCE_CONFIG.get("query_fetch_k", 50),
+            # "lambda_mult": config.PERFORMANCE_CONFIG.get("query_lambda_mult", 0.5)
         }
     )
 
@@ -106,7 +112,7 @@ def create_rag_chain():
 
         except Exception as e:
             logger.warning(f"Query processing failed, falling back to standard retrieval: {e}")
-    # Create thread pool for async operations
+            return retriever.invoke(query)  # Fallback to standard retrieval
     thread_pool = ThreadPoolExecutor(max_workers=config.PERFORMANCE_CONFIG.get("max_workers", 4))
 
     # Async wrapper for synchronous operations
@@ -167,6 +173,9 @@ def create_rag_chain():
     # Format documents with enhanced metadata for better context
     def format_docs_with_metadata(docs):
         """Format documents with enhanced metadata for better context"""
+        if docs is None:
+            return "No documents found for this query."
+
         formatted_docs = []
 
         for doc in docs:
@@ -214,8 +223,12 @@ Answer:"""
     prompt = ChatPromptTemplate.from_template(template)
 
     # Create the main RAG chain using LCEL with enhanced retriever
+    def create_context(question):
+        """Create context using enhanced retriever"""
+        return format_docs_with_metadata(enhanced_retriever(question))
+
     rag_chain = (
-        {"context": enhanced_retriever | format_docs_with_metadata, "question": RunnablePassthrough()}
+        RunnablePassthrough.assign(context=lambda x: create_context(x))
         | prompt
         | llm
         | StrOutputParser()
@@ -307,6 +320,9 @@ Answer:"""
         await run_in_thread(get_cache().set, cache_key, result, ttl=3600)  # 1 hour TTL
 
         return result
+
+    # Wrap with caching
+    cached_rag_chain = cached_query(rag_chain_with_context)
 
     print("--- Async RAG Chain Created Successfully with Caching ---")
     return cached_async_rag_chain, cached_rag_chain

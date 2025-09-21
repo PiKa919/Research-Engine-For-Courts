@@ -26,7 +26,7 @@ def create_test_cases(questions_and_answers: List[Dict[str, str]]) -> List[LLMTe
     Returns:
         List of LLMTestCase objects
     """
-    rag_chain = create_rag_chain()
+    async_rag_chain, sync_rag_chain = create_rag_chain()
     test_cases = []
     
     for qa in questions_and_answers:
@@ -35,7 +35,7 @@ def create_test_cases(questions_and_answers: List[Dict[str, str]]) -> List[LLMTe
         
         # Get actual response from RAG chain
         try:
-            response = rag_chain(question)  # Use direct call instead of invoke
+            response = sync_rag_chain(question)  # Use sync chain for evaluation
             actual_answer = response if isinstance(response, str) else response.get('answer', '')
 
             # Get context (retrieved documents)

@@ -12,7 +12,7 @@ from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from src import config
-from src.enhanced_document_processor import create_enhanced_ingestion_pipeline, create_enhanced_ingestion_pipeline_lazy
+from src.enhanced_document_processor import create_enhanced_ingestion_pipeline_lazy
 from tqdm import tqdm
 
 # Set up logging
@@ -73,7 +73,7 @@ def ingest_data_parallel():
         openai_api_base="http://127.0.0.1:1234/v1",
         openai_api_key="lm-studio",
         check_embedding_ctx_length=False,
-        **config.MODEL_CONFIG
+        **config.EMBEDDING_CONFIG
     )
 
     # Check document count and size to decide on processing strategy
@@ -101,7 +101,7 @@ def ingest_data_parallel():
         )
     else:
         logger.info(f"Using standard processing for {doc_count} documents")
-        processed_chunks, stats = create_enhanced_ingestion_pipeline(config.DATA_PATH, config, embeddings)
+        processed_chunks, stats = create_enhanced_ingestion_pipeline_lazy(config.DATA_PATH, config, embeddings)
 
     if not processed_chunks:
         print("No chunks to process. Exiting.")
@@ -112,8 +112,8 @@ def ingest_data_parallel():
     # Initialize Chroma with optimized configuration
     vectorstore = Chroma(
         persist_directory=config.CHROMA_PATH,
-        embedding_function=embeddings,
-        collection_metadata=config.CHROMA_CONFIG
+        embedding_function=embeddings
+        # Removed empty collection_metadata to use Chroma defaults
     )
 
     # Use optimized batch size from config
@@ -159,8 +159,7 @@ def ingest_data_parallel():
 
     # Print final statistics
     avg_batch_time = total_processing_time / max(1, successful_batches)
-    print("
-=== Ingestion Summary ===")
+    print("\n=== Ingestion Summary ===")
     print(f"Total chunks processed: {len(processed_chunks)}")
     print(f"Successful batches: {successful_batches}")
     print(f"Failed batches: {failed_batches}")
@@ -169,8 +168,7 @@ def ingest_data_parallel():
     print(f"Chunks per second: {len(processed_chunks) / max(1, total_processing_time):.2f}")
 
     if stats:
-        print("
-Document Analysis:")
+        print("\nDocument Analysis:")
         print(f"- Total documents: {stats.get('analysis', {}).get('total_documents', 0)}")
         print(f"- Average document length: {stats.get('analysis', {}).get('avg_doc_length', 0):.0f} characters")
         print(f"- Legal documents detected: {stats.get('analysis', {}).get('is_legal_document', False)}")

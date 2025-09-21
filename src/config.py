@@ -33,13 +33,14 @@ PERFORMANCE_CONFIG = {
 
 # Chroma HNSW index optimization settings
 CHROMA_CONFIG = {
-    "hnsw:space": "cosine",  # Better for semantic similarity
-    "hnsw:ef_construction": 200,  # Higher quality index
-    "hnsw:ef_search": 100,  # Faster search
-    "hnsw:max_neighbors": 32,  # Better connectivity
-    "hnsw:num_threads": 4,  # Parallel index building
-    "hnsw:batch_size": 100,  # Batch processing size
-    "hnsw:sync_threshold": 1000  # Sync frequency
+    # Using Chroma defaults for now - can optimize later
+    # "hnsw:space": "cosine",
+    # "hnsw:ef_construction": 128,
+    # "hnsw:ef_search": 64,
+    # "hnsw:max_neighbors": 16,
+    # "hnsw:num_threads": 2,
+    # "hnsw:batch_size": 50,
+    # "hnsw:sync_threshold": 500
 }
 
 # Caching configurations
@@ -57,6 +58,12 @@ MODEL_CONFIG = {
     "top_p": 0.9,
     "frequency_penalty": 0.0,
     "presence_penalty": 0.0
+}
+
+# Embedding model configuration (separate from LLM config)
+EMBEDDING_CONFIG = {
+    # Embeddings don't need temperature or token limits
+    # Add any embedding-specific parameters here if needed
 }
 
 # Graph cache path

@@ -185,8 +185,7 @@ class SemanticTextSplitter:
             breakpoint_threshold_type="percentile",
             breakpoint_threshold_amount=breakpoint_threshold,
             buffer_size=1,  # Minimal buffer for legal precision
-            min_chunk_size=200,  # Minimum chunk size for legal context
-            max_chunk_size=2000  # Maximum chunk size to prevent memory issues
+            min_chunk_size=200  # Minimum chunk size for legal context
         )
 
         logger.info(f"Configured semantic splitter: threshold={breakpoint_threshold}%")

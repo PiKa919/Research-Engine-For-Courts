@@ -336,11 +336,11 @@ with tab1:
         if llm:
             with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
-                    rag_chain = create_rag_chain()
-                    response = rag_chain(prompt)
+                    async_rag_chain, sync_rag_chain = create_rag_chain()
+                    response = sync_rag_chain(prompt)
                     answer = response["answer"]
                     st.markdown(answer)
-                    
+
                     # Display sources
                     if 'context' in response and response['context']:
                         st.write("\n---\n**Sources:**")
