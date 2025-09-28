@@ -1,10 +1,24 @@
-# Legal Research Engine for Courts
+# Legal Research Engine for Courts with LangGraph
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.49.1-red.svg)](https://streamlit.io)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-blue.svg)](https://github.com/langchain-ai/langgraph)
 
-A comprehensive AI-powered legal research assistant built with LangChain, Streamlit, and local LM Studio models. This system provides intelligent document analysis, case law research, precedent analysis, and citation management for Indian legal documents.
+A comprehensive AI-powered legal research assistant built with LangChain, **LangGraph multi-agent workflows**, Streamlit, and local LM Studio models. This system provides intelligent document analysis, case law research, precedent analysis, and citation management for Indian legal documents.
+
+## 🆕 **New: LangGraph Multi-Agent Workflows**
+
+This version introduces advanced **LangGraph workflows** with specialized AI agents for comprehensive legal analysis:
+
+- 🎯 **Orchestrator Agent**: Plans and coordinates research workflow
+- 📚 **Document Retrieval Agent**: Performs advanced RAG-based search  
+- 📄 **Case Brief Agent**: Generates structured legal summaries
+- ⚖️ **Precedent Analysis Agent**: Identifies similar cases and principles
+- 📝 **Citation Extraction Agent**: Automatically extracts legal citations
+- 🔄 **Report Synthesizer**: Combines all analysis into comprehensive reports
+
+**[📖 Read the Complete LangGraph Integration Guide](LANGGRAPH_GUIDE.md)**
 
 ## Quick Start
 
@@ -13,10 +27,10 @@ A comprehensive AI-powered legal research assistant built with LangChain, Stream
 git clone https://github.com/PiKa919/Research-Engine-For-Courts.git
 cd Research-Engine-For-Courts
 
-# Install dependencies
+# Install dependencies (now includes LangGraph)
 pip install -r requirements.txt
 
-# Run the application
+# Run the application with LangGraph workflows
 streamlit run app.py
 ```
 
@@ -29,23 +43,27 @@ streamlit run app.py
 - **Adaptive Text Splitting**: Smart chunking optimized for legal content
 
 ### 🤖 AI-Powered Analysis
+- **🆕 LangGraph Multi-Agent Workflows**: Sophisticated orchestration of specialized AI agents
 - **Local LLM Integration**: Uses LM Studio for complete privacy and cost control
 - **Retrieval-Augmented Generation (RAG)**: Context-aware legal research
 - **Multi-Model Support**: Separate models for embeddings and chat
 - **Legal-Specific Prompts**: Tailored prompts for Indian legal system
+- **🆕 Human-in-the-Loop**: Built-in approval workflows for critical decisions
 
 ### 📊 Advanced Tools
 - **Citation Graph Visualization**: Interactive network of legal citations
-- **Case Brief Generator**: Automated structured case brief creation
-- **Precedent Analysis**: Find similar cases and legal principles
+- **🆕 Automated Case Brief Generation**: AI-generated structured legal summaries
+- **🆕 Advanced Precedent Analysis**: Multi-agent case law research
 - **Document Comparison**: Side-by-side analysis of multiple documents
 - **Timeline Builder**: Chronological case progression tracking
+- **🆕 Workflow Monitoring**: Real-time tracking of analysis progress
 
 ### 🎯 Legal Research Capabilities
 - **Indian Law Focus**: Specialized for Indian legal system and courts
-- **Citation Extraction**: Automatic identification of legal references
+- **🆕 Automatic Citation Extraction**: AI-powered legal reference identification
 - **Case Law Research**: Intelligent precedent finding and analysis
 - **Document Similarity**: Semantic search across legal documents
+- **🆕 Confidence Scoring**: Quality assessment of analysis results
 
 ## Installation
 

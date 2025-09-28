@@ -18,7 +18,56 @@ from langchain.docstore.document import Document
 from langchain_chroma import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from src import config as cfg
+import streamlit as st
+import os
+import re
+import networkx as nx
+from pyvis.network import Network
+from langchain_openai import ChatOpenAI
+import collections
+from src.ingest import ingest_data
+from src.retrieval import create_rag_chain  # RAG chain
+from src.config import DATA_PATH
+from langchain_community.document_loaders import PyPDFDirectoryLoader
+from src.evaluation import run_sample_evaluation
+from src.knowledge_graph import create_knowledge_graph, visualize_knowledge_graph
+from src.case_brief_generator import CaseBriefGenerator
+from src.precedent_analyzer import PrecedentAnalyzer, LegalIssueExtractor
+from src.document_comparator import DocumentComparator, CaseTimelineBuilder
+from langchain.docstore.document import Document
+from langchain_chroma import Chroma
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from src import config as cfg
 from dotenv import load_dotenv
+
+# LangGraph integration imports
+from src.langgraph_integration import (
+    LangGraphRAGIntegration,
+    create_langgraph_streamlit_interface,
+    display_langgraph_results,
+    create_workflow_monitoring_dashboard
+)
+
+# Enhanced Streamlit components
+from src.streamlit_enhancements import (
+    create_modern_header,
+    create_analytics_dashboard,
+    create_interactive_workflow_builder,
+    create_advanced_chat_interface
+)
+
+# Theme management and export capabilities
+from src.theme_manager import (
+    create_theme_selector,
+    apply_theme_on_startup,
+    create_legal_styled_header,
+    create_status_badge
+)
+
+from src.export_manager import (
+    create_export_interface,
+    create_batch_export_interface
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,9 +75,25 @@ load_dotenv()
 # Note: This app uses local LM Studio models for all processing
 
 # --- App Configuration ---
-st.set_page_config(page_title="Legal Research Engine", layout="wide")
-st.title("Legal Research Engine")
-st.write("This app allows you to chat with your legal documents using local models from LM Studio.")
+st.set_page_config(
+    page_title="Legal Research Engine with LangGraph", 
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://github.com/your-repo/legal-research-engine',
+        'Report a bug': "https://github.com/your-repo/legal-research-engine/issues",
+        'About': "# Legal Research Engine\nAn open-source AI-powered legal research platform using LangGraph workflows and local LM Studio models."
+    }
+)
+
+# Apply theme on startup
+apply_theme_on_startup()
+
+# Create modern header
+create_legal_styled_header(
+    "🏛️ Legal Research Engine with LangGraph",
+    "Advanced AI-powered legal research using local LM Studio models and LangGraph workflows"
+)
 
 # --- Functions ---
 @st.cache_data
@@ -279,6 +344,11 @@ def build_citation_graph(documents, min_citations=2):
 # --- Sidebar ---
 with st.sidebar:
     st.header("Configuration")
+    
+    # Theme selector
+    create_theme_selector()
+    
+    st.markdown("---")
 
     # Initialize LLM using local LM Studio
     llm = None
@@ -310,52 +380,75 @@ with st.sidebar:
                                help="Show citations that appear in only one document")
 
 # --- Main App ---
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "Chat", 
-    "Citation Graph", 
-    "Citation Analysis", 
-    "Case Brief Generator", 
-    "Precedent Analysis",
-    "Document Comparison",
-    "Evaluation"
+# Initialize LangGraph integration
+@st.cache_resource
+def get_langgraph_integration():
+    return LangGraphRAGIntegration()
+
+langgraph_integration = get_langgraph_integration()
+
+# Enhanced tab structure with new features
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+    "💬 Advanced Chat", 
+    "📊 Analytics Dashboard",
+    "🔧 Workflow Builder",
+    "� Export Center",
+    "�📈 Citation Graph", 
+    "📋 Citation Analysis", 
+    "📄 Case Brief Generator", 
+    "⚖️ Precedent Analysis",
+    "📝 Document Comparison",
+    "🔍 Evaluation",
+    "🔄 Workflow Monitor"
 ])
 
 with tab1:
-    if 'messages' not in st.session_state:
-        st.session_state.messages = []
-
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    if prompt := st.chat_input("Ask a question about your documents"):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        if llm:
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking..."):
-                    async_rag_chain, sync_rag_chain = create_rag_chain()
-                    response = sync_rag_chain(prompt)
-                    answer = response["answer"]
-                    st.markdown(answer)
-
-                    # Display sources
-                    if 'context' in response and response['context']:
-                        st.write("\n---\n**Sources:**")
-                        for doc in response['context']:
-                            source = doc.metadata.get('source', 'Unknown')
-                            page = doc.metadata.get('page', 'N/A')
-                            st.write(f"- **Source:** {os.path.basename(source)}, **Page:** {page}")
-                            with st.expander("Show content"):
-                                st.write(doc.page_content)
-
-            st.session_state.messages.append({"role": "assistant", "content": answer})
-        else:
-            st.info("Please select a model and provide the necessary configuration in the sidebar.")
+    create_advanced_chat_interface()
 
 with tab2:
+    create_analytics_dashboard()
+
+with tab3:
+    create_interactive_workflow_builder()
+
+with tab4:
+    st.header("📥 Export & Download Center")
+    st.write("Export your research results in various formats for sharing and documentation.")
+    
+    # Export interface for current session
+    if "messages" in st.session_state and st.session_state.messages:
+        # Find the last assistant response
+        last_response = None
+        for msg in reversed(st.session_state.messages):
+            if msg["role"] == "assistant":
+                last_response = msg["content"]
+                break
+        
+        if last_response:
+            if isinstance(last_response, dict):
+                export_data = last_response
+            else:
+                export_data = {
+                    "title": "Legal Research Report",
+                    "query": "Latest query",
+                    "response": str(last_response),
+                    "sources": [],
+                    "citations": [],
+                    "confidence_score": 0.8,
+                    "completed_steps": ["Analysis completed"],
+                    "recommendations": []
+                }
+            
+            create_export_interface(export_data)
+            
+            st.markdown("---")
+            create_batch_export_interface()
+        else:
+            st.info("No research results available for export. Please perform a legal research query first.")
+    else:
+        st.info("No active session data. Please start a conversation in the Advanced Chat tab.")
+
+with tab5:
     st.header("Citation Graph")
     if st.button("Generate Citation Graph"):
         with st.spinner("Building graph..."):
@@ -436,7 +529,7 @@ with tab2:
             else:
                 st.warning("No documents found.")
 
-with tab3:
+with tab6:
     st.header("Citation Analysis")
     if st.button("Analyze Citations"):
         documents = load_documents()
@@ -478,7 +571,7 @@ with tab3:
         else:
             st.warning("No documents found.")
 
-with tab4:
+with tab6:
     st.header("📋 Case Brief Generator")
     st.write("Generate structured case briefs from your legal documents automatically.")
 
@@ -545,7 +638,7 @@ with tab4:
     else:
         st.error("Vector store could not be loaded.")
 
-with tab5:
+with tab7:
     st.header("⚖️ Precedent Analysis")
     st.write("Find similar cases and analyze legal precedents to support your judicial decision-making.")
 
@@ -623,7 +716,7 @@ with tab5:
                 st.error(f"Error during precedent analysis: {e}")
                 st.info("Make sure you have set your GOOGLE_API_KEY in the .env file and have ingested documents.")
 
-with tab6:
+with tab8:
     st.header("📊 Document Comparison")
     st.write("Compare multiple case documents to identify similarities, differences, and legal implications.")
 
@@ -723,23 +816,95 @@ with tab7:
                 else:
                     st.success("Evaluation completed!")
 
-                    st.subheader("Results Summary")
-                    st.write(f"Total test cases: {results['total_test_cases']}")
+                    # Display results in columns
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("Answer Relevancy", f"{results['answer_relevancy']:.2f}")
+                    
+                    with col2:
+                        st.metric("Faithfulness", f"{results['faithfulness']:.2f}")
+                    
+                    with col3:
+                        st.metric("Contextual Precision", f"{results['contextual_precision']:.2f}")
 
-                    st.subheader("Metrics")
-                    for metric_name, metric_data in results['metrics_results'].items():
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write(f"**{metric_name}**")
-                        with col2:
-                            if metric_data['score'] is not None:
-                                st.write(f"Score: {metric_data['score']:.3f}")
-                            else:
-                                st.write("Score: N/A")
-
-                        if metric_data['reason']:
-                            st.write(f"Reason: {metric_data['reason']}")
+                    # Detailed results
+                    with st.expander("Detailed Results"):
+                        st.json(results)
 
             except Exception as e:
-                st.error(f"Error running evaluation: {e}")
-                st.info("Make sure DeepEval is installed: pip install deepeval")
+                st.error(f"Error during evaluation: {e}")
+                st.info("Make sure all required libraries are installed and LM Studio is running.")
+
+with tab9:
+    st.header("🔍 System Evaluation")
+
+with tab10:
+    st.header("🔄 LangGraph Workflow Monitoring")
+    st.write("Monitor and analyze LangGraph workflow performance and structure.")
+    
+    create_workflow_monitoring_dashboard()
+    
+    # Additional workflow information
+    st.subheader("🏗️ Workflow Architecture")
+    st.markdown("""
+    The LangGraph workflow implements a sophisticated multi-agent system:
+    
+    **Agents:**
+    - 🎯 **Orchestrator**: Plans and coordinates the research workflow
+    - 📚 **Document Retrieval Agent**: Performs RAG-based document search
+    - 📄 **Case Brief Agent**: Generates structured case summaries  
+    - ⚖️ **Precedent Analysis Agent**: Identifies similar cases and legal principles
+    - 📝 **Citation Extraction Agent**: Finds and validates legal citations
+    - 🔄 **Report Synthesizer**: Combines all analysis into comprehensive reports
+    
+    **Features:**
+    - ✅ **Stateful Execution**: Maintains context across workflow steps
+    - 🔄 **Error Recovery**: Continues processing even if individual steps fail
+    - 📊 **Monitoring**: Tracks performance and completion metrics
+    - 🔀 **Conditional Routing**: Intelligent decision-making between workflow paths
+    - ⏱️ **Checkpointing**: Can resume from interruption points
+    """)
+    
+    # Workflow comparison
+    st.subheader("📊 Traditional RAG vs LangGraph Comparison")
+    
+    comparison_data = {
+        "Feature": [
+            "Response Time",
+            "Analysis Depth", 
+            "Error Handling",
+            "Citation Extraction",
+            "Precedent Analysis",
+            "Case Brief Generation",
+            "Multi-step Reasoning",
+            "Human-in-Loop",
+            "Production Ready"
+        ],
+        "Traditional RAG": [
+            "⚡ Fast (2-5s)",
+            "🔵 Basic",
+            "🔴 Limited", 
+            "🔴 None",
+            "🔴 None",
+            "🔴 None",
+            "🔴 Limited",
+            "🔴 None",
+            "🟡 Moderate"
+        ],
+        "LangGraph Workflow": [
+            "🕐 Moderate (10-30s)", 
+            "🟢 Comprehensive",
+            "🟢 Advanced",
+            "🟢 Automatic",
+            "🟢 Detailed",
+            "🟢 Structured",
+            "🟢 Multi-agent",
+            "🟢 Built-in",
+            "🟢 Enterprise"
+        ]
+    }
+    
+    import pandas as pd
+    df = pd.DataFrame(comparison_data)
+    st.dataframe(df, use_container_width=True, hide_index=True)

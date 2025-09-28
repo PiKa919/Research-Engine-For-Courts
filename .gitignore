@@ -225,3 +225,6 @@ node_modules/
 # Git
 .git
 .gitignore
+
+.roo
+.deepeval

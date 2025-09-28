@@ -6,15 +6,17 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from typing import Optional, List
 
 from .retrieval import create_rag_chain
 from .monitoring import get_monitor, log_performance_summary
+from .langgraph_integration import LangGraphRAGIntegration
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Legal Research Engine API",
-    description="API for the AI-Driven Research Engine for Commercial Courts.",
-    version="0.1.0",
+    title="Legal Research Engine API with LangGraph",
+    description="Advanced API for the AI-Driven Research Engine with LangGraph workflows.",
+    version="1.0.0",
 )
 
 app.mount("/static", StaticFiles(directory="."), name="static")
@@ -22,9 +24,19 @@ app.mount("/static", StaticFiles(directory="."), name="static")
 # Create both sync and async RAG chains on startup
 async_rag_chain, sync_rag_chain = create_rag_chain()
 
-# Pydantic model for the request body
+# Initialize LangGraph integration
+langgraph_integration = LangGraphRAGIntegration()
+
+# Pydantic models
 class Query(BaseModel):
     text: str
+
+class AdvancedQuery(BaseModel):
+    text: str
+    use_langgraph: bool = True
+    include_case_brief: bool = True
+    include_precedent_analysis: bool = True
+    include_citations: bool = True
 
 @app.get("/", summary="Root endpoint")
 async def root():
@@ -32,9 +44,14 @@ async def root():
     Provides a welcome message and API information.
     """
     return {
-        "message": "Welcome to the Legal Research Engine API!",
-        "version": "0.2.0",
+        "message": "Welcome to the Legal Research Engine API with LangGraph!",
+        "version": "1.0.0",
         "features": [
+            "LangGraph multi-agent workflows",
+            "Advanced legal research analysis",
+            "Case brief generation",
+            "Precedent analysis",
+            "Citation extraction",
             "Async query processing",
             "Enhanced retrieval with query expansion",
             "Multi-level caching",
@@ -43,8 +60,10 @@ async def root():
         ],
         "endpoints": {
             "query": "/query/ (async)",
+            "advanced_query": "/query/advanced (LangGraph)",
             "sync_query": "/query/sync",
             "health": "/health",
+            "workflow_status": "/workflow/status",
             "docs": "/docs"
         }
     }
@@ -124,6 +143,69 @@ async def perform_query(query: Query):
             "processing_type": "sync_fallback",
             "error": str(e)
         }
+
+
+@app.post("/query/advanced", summary="Perform advanced LangGraph query")
+async def perform_advanced_query(query: AdvancedQuery):
+    """
+    Performs advanced legal research using LangGraph multi-agent workflow.
+    Provides comprehensive analysis including case briefs, precedent analysis, and citations.
+    """
+    try:
+        result = langgraph_integration.enhanced_query_processing(
+            query=query.text,
+            use_langgraph=query.use_langgraph,
+            documents=None  # API doesn't pass documents directly
+        )
+        
+        return {
+            "success": True,
+            "query": query.text,
+            "method": result.get("method", "unknown"),
+            "response": result.get("response", "No response generated"),
+            "confidence_score": result.get("confidence_score", 0.0),
+            "completed_steps": result.get("completed_steps", []),
+            "errors": result.get("errors", []),
+            "citations": result.get("citations", []),
+            "recommendations": result.get("recommendations", []),
+            "case_brief": result.get("case_brief"),
+            "precedent_analysis": result.get("precedent_analysis"),
+            "processing_time": result.get("processing_time"),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "query": query.text,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+
+@app.get("/workflow/status", summary="Get workflow status")
+async def get_workflow_status():
+    """
+    Returns the current status of the LangGraph workflow system.
+    """
+    try:
+        from .langgraph_workflow import get_legal_workflow
+        workflow = get_legal_workflow()
+        status = workflow.get_workflow_status()
+        
+        return {
+            "success": True,
+            "status": status,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
 
 @app.post("/query/sync", summary="Perform a synchronous RAG query")
 async def perform_sync_query(query: Query):
