@@ -1,18 +1,51 @@
 # src/evaluation.py
 
 import os
-from deepeval import evaluate
-from deepeval.metrics import (
-    ContextualPrecisionMetric,
-    ContextualRecallMetric,
-    ContextualRelevancyMetric,
-    AnswerRelevancyMetric,
-    FaithfulnessMetric
-)
-from deepeval.test_case import LLMTestCase
-from .retrieval import create_rag_chain
 from typing import List, Dict, Any
 import logging
+
+# Optional deepeval imports with fallbacks
+try:
+    from deepeval import evaluate
+    from deepeval.metrics import (
+        ContextualPrecisionMetric,
+        ContextualRecallMetric,
+        ContextualRelevancyMetric,
+        AnswerRelevancyMetric,
+        FaithfulnessMetric
+    )
+    from deepeval.test_case import LLMTestCase
+    DEEPEVAL_AVAILABLE = True
+except ImportError:
+    # Fallback classes for when deepeval is not available
+    class MockMetric:
+        def __init__(self, *args, **kwargs):
+            pass
+        
+        def measure(self, test_case):
+            return {"score": 0.5, "reason": "DeepEval not available - mock evaluation"}
+    
+    class MockTestCase:
+        def __init__(self, input, actual_output, expected_output=None, retrieval_context=None):
+            self.input = input
+            self.actual_output = actual_output
+            self.expected_output = expected_output
+            self.retrieval_context = retrieval_context
+    
+    # Mock classes
+    ContextualPrecisionMetric = MockMetric
+    ContextualRecallMetric = MockMetric
+    ContextualRelevancyMetric = MockMetric
+    AnswerRelevancyMetric = MockMetric
+    FaithfulnessMetric = MockMetric
+    LLMTestCase = MockTestCase
+    
+    def evaluate(*args, **kwargs):
+        return {"average_score": 0.5, "message": "DeepEval not available - using mock evaluation"}
+    
+    DEEPEVAL_AVAILABLE = False
+    
+from .retrieval import create_rag_chain
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +59,10 @@ def create_test_cases(questions_and_answers: List[Dict[str, str]]) -> List[LLMTe
     Returns:
         List of LLMTestCase objects
     """
+    if not DEEPEVAL_AVAILABLE:
+        logger.warning("DeepEval not available - returning mock test cases")
+        return [LLMTestCase(qa['question'], "Mock response", qa['expected_answer']) for qa in questions_and_answers]
+    
     async_rag_chain, sync_rag_chain = create_rag_chain()
     test_cases = []
     
@@ -66,6 +103,20 @@ def evaluate_rag_system(test_cases: List[LLMTestCase]) -> Dict[str, Any]:
     """
     if not test_cases:
         return {"error": "No test cases provided"}
+    
+    if not DEEPEVAL_AVAILABLE:
+        logger.warning("DeepEval not available - returning mock evaluation results")
+        return {
+            "total_test_cases": len(test_cases),
+            "metrics_results": {
+                "ContextualPrecisionMetric": {"score": 0.5, "reason": "DeepEval not available"},
+                "ContextualRecallMetric": {"score": 0.5, "reason": "DeepEval not available"},
+                "ContextualRelevancyMetric": {"score": 0.5, "reason": "DeepEval not available"},
+                "AnswerRelevancyMetric": {"score": 0.5, "reason": "DeepEval not available"},
+                "FaithfulnessMetric": {"score": 0.5, "reason": "DeepEval not available"}
+            },
+            "message": "Mock evaluation - install deepeval for real metrics"
+        }
     
     try:
         # Define metrics

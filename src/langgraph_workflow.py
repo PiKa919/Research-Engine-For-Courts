@@ -232,7 +232,7 @@ class PrecedentAnalysisAgent:
     """Analyzes legal precedents"""
     
     def __init__(self):
-        self.precedent_analyzer = PrecedentAnalyzer()
+        self.precedent_analyzer = PrecedentAnalyzer(vectorstore_path=config.CHROMA_PATH)
         
     @timing_decorator
     def analyze_precedents(self, state: LegalResearchState) -> Dict[str, Any]:

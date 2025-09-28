@@ -11,7 +11,13 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 
-from langchain_experimental.text_splitter import SemanticChunker
+try:
+    from langchain_experimental.text_splitter import SemanticChunker
+    SEMANTIC_CHUNKER_AVAILABLE = True
+except ImportError:
+    SEMANTIC_CHUNKER_AVAILABLE = False
+    print("Warning: langchain_experimental not available. Using standard chunking only.")
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_core.documents import Document as LCDocument
@@ -180,19 +186,37 @@ class SemanticTextSplitter:
             breakpoint_threshold = 85
 
         # Use percentile-based threshold for legal documents
-        self.semantic_splitter = SemanticChunker(
-            embeddings=self.embeddings,
-            breakpoint_threshold_type="percentile",
-            breakpoint_threshold_amount=breakpoint_threshold,
-            buffer_size=1,  # Minimal buffer for legal precision
-            min_chunk_size=200  # Minimum chunk size for legal context
-        )
-
-        logger.info(f"Configured semantic splitter: threshold={breakpoint_threshold}%")
+        if SEMANTIC_CHUNKER_AVAILABLE:
+            try:
+                self.semantic_splitter = SemanticChunker(
+                    embeddings=self.embeddings,
+                    breakpoint_threshold_type="percentile",
+                    breakpoint_threshold_amount=breakpoint_threshold,
+                    buffer_size=1,  # Minimal buffer for legal precision
+                    min_chunk_size=200  # Minimum chunk size for legal context
+                )
+                logger.info(f"Configured semantic splitter: threshold={breakpoint_threshold}%")
+            except Exception as e:
+                logger.warning(f"Could not initialize semantic chunker: {e}")
+                self.semantic_splitter = None
+        else:
+            self.semantic_splitter = None
+            logger.info("Semantic chunker not available, using recursive splitter only")
 
     def split_documents(self, documents: List[LCDocument]) -> List[LCDocument]:
         """Split documents using semantic chunking"""
-        return self.semantic_splitter.split_documents(documents)
+        if self.semantic_splitter is not None:
+            return self.semantic_splitter.split_documents(documents)
+        else:
+            # Fallback to recursive splitting
+            logger.warning("Semantic splitter not available, falling back to recursive splitting")
+            fallback_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200,
+                separators=["\n\n", "\n", ".", "!", "?", ",", " ", ""],
+                keep_separator=True
+            )
+            return fallback_splitter.split_documents(documents)
 
 class HybridTextSplitter:
     """Hybrid splitter that combines adaptive and semantic splitting"""
@@ -201,18 +225,27 @@ class HybridTextSplitter:
         self.embeddings = embeddings
         self.analysis = analysis
         self.adaptive_splitter = AdaptiveTextSplitter(analysis)
-        self.semantic_splitter = SemanticTextSplitter(embeddings, analysis)
+        if SEMANTIC_CHUNKER_AVAILABLE:
+            try:
+                self.semantic_splitter = SemanticTextSplitter(embeddings, analysis)
+            except Exception as e:
+                logger.warning(f"Could not initialize semantic text splitter: {e}")
+                self.semantic_splitter = None
+        else:
+            self.semantic_splitter = None
 
     def split_documents(self, documents: List[LCDocument]) -> List[LCDocument]:
         """Split documents using hybrid approach"""
 
         # For very large documents, use semantic splitting
-        if self.analysis['avg_doc_length'] > 100000:
+        if self.analysis['avg_doc_length'] > 100000 and self.semantic_splitter is not None:
             logger.info("Using semantic splitting for large documents")
             return self.semantic_splitter.split_documents(documents)
 
         # For legal documents with high complexity, use semantic splitting
-        elif self.analysis['is_legal_document'] and self.analysis['complexity_score'] > 0.6:
+        elif (self.analysis['is_legal_document'] and 
+              self.analysis['complexity_score'] > 0.6 and 
+              self.semantic_splitter is not None):
             logger.info("Using semantic splitting for complex legal documents")
             return self.semantic_splitter.split_documents(documents)
 
